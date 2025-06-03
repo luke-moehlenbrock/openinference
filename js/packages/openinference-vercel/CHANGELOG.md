@@ -1,5 +1,11 @@
 # @arizeai/openinference-vercel
 
+## 2.2.1
+
+### Patch Changes
+
+- d944a82: Updated the OpenInference semantic convention mapping to account for changes to the Vercel AI SDK semantic conventions
+
 ## 2.2.0
 
 ### Minor Changes
