@@ -6,6 +6,7 @@ from opentelemetry import context as context_api
 from opentelemetry import trace as trace_api
 from opentelemetry.util.types import AttributeValue
 
+import openinference.instrumentation as oi
 from openinference.instrumentation import get_attributes_from_context, safe_json_dumps
 from openinference.semconv.trace import (
     MessageAttributes,
@@ -71,19 +72,25 @@ def _smolagent_run_attributes(
             f"smolagents.managed_agents.{managed_agent_index}.description",
             managed_agent.description,
         )
-        if managed_agent.additional_prompting:
+        if getattr(managed_agent, "additional_prompting", None):
             yield (
                 f"smolagents.managed_agents.{managed_agent_index}.additional_prompting",
                 managed_agent.additional_prompting,
             )
-        yield (
-            f"smolagents.managed_agents.{managed_agent_index}.max_steps",
-            managed_agent.agent.max_steps,
-        )
-        yield (
-            f"smolagents.managed_agents.{managed_agent_index}.tools_names",
-            list(managed_agent.agent.tools.keys()),
-        )
+        elif getattr(managed_agent, "managed_agent_prompt", None):
+            yield (
+                f"smolagents.managed_agents.{managed_agent_index}.managed_agent_prompt",
+                managed_agent.managed_agent_prompt,
+            )
+        if getattr(managed_agent, "agent", None):
+            yield (
+                f"smolagents.managed_agents.{managed_agent_index}.max_steps",
+                managed_agent.agent.max_steps,
+            )
+            yield (
+                f"smolagents.managed_agents.{managed_agent_index}.tools_names",
+                list(managed_agent.agent.tools.keys()),
+            )
 
 
 class _RunWrapper:
@@ -164,54 +171,60 @@ class _StepWrapper:
 
 
 def _llm_input_messages(arguments: Mapping[str, Any]) -> Iterator[Tuple[str, Any]]:
+    def process_message(idx: int, role: str, content: str) -> Iterator[Tuple[str, Any]]:
+        yield f"{LLM_INPUT_MESSAGES}.{idx}.{MESSAGE_ROLE}", role
+        yield f"{LLM_INPUT_MESSAGES}.{idx}.{MESSAGE_CONTENT}", content
+
     if isinstance(prompt := arguments.get("prompt"), str):
-        yield f"{LLM_INPUT_MESSAGES}.0.{MESSAGE_ROLE}", "user"
-        yield f"{LLM_INPUT_MESSAGES}.0.{MESSAGE_CONTENT}", prompt
+        yield from process_message(0, "user", prompt)
     elif isinstance(messages := arguments.get("messages"), list):
         for i, message in enumerate(messages):
             if not isinstance(message, dict):
                 continue
-            if (role := message.get("role", None)) is not None:
-                yield (
-                    f"{LLM_INPUT_MESSAGES}.{i}.{MESSAGE_ROLE}",
-                    role,
-                )
-            if (content := message.get("content", None)) is not None:
-                yield (
-                    f"{LLM_INPUT_MESSAGES}.{i}.{MESSAGE_CONTENT}",
-                    content,
-                )
+            role, content = message.get("role"), message.get("content")
+            if isinstance(content, list) and role:
+                for subcontent in content:
+                    if isinstance(subcontent, dict) and (text := subcontent.get("text")):
+                        yield from process_message(i, role, text)
 
 
-def _llm_output_messages(output_message: Any) -> Iterator[Tuple[str, Any]]:
+def _llm_output_messages(output_message: Any) -> Mapping[str, AttributeValue]:
+    oi_message: oi.Message = {}
+    oi_message_contents: list[oi.MessageContent] = []
     if (role := getattr(output_message, "role", None)) is not None:
-        yield (
-            f"{LLM_OUTPUT_MESSAGES}.0.{MESSAGE_ROLE}",
-            role,
-        )
+        oi_message["role"] = role
     if (content := getattr(output_message, "content", None)) is not None:
-        yield (
-            f"{LLM_OUTPUT_MESSAGES}.0.{MESSAGE_CONTENT}",
-            content,
-        )
+        oi_message_contents.append(oi.TextMessageContent(type="text", text=content))
+
+    # Add the reasoning_content if available in raw.choices[0].message structure
+    if (raw := getattr(output_message, "raw", None)) is not None:
+        if (choices := getattr(raw, "choices", None)) is not None:
+            if isinstance(choices, list) and len(choices) > 0:
+                if (message := getattr(choices[0], "message", None)) is not None:
+                    if (
+                        reasoning_content := getattr(message, "reasoning_content", None)
+                    ) is not None:
+                        oi_message_contents.append(
+                            oi.TextMessageContent(type="text", text=reasoning_content)
+                        )
+
+    oi_message["contents"] = oi_message_contents
+    oi_tool_calls: list[oi.ToolCall] = []
     if isinstance(tool_calls := getattr(output_message, "tool_calls", None), list):
-        for tool_call_index, tool_call in enumerate(tool_calls):
+        for tool_call in tool_calls:
+            oi_tool_call: oi.ToolCall = {}
             if (tool_call_id := getattr(tool_call, "id", None)) is not None:
-                yield (
-                    f"{LLM_OUTPUT_MESSAGES}.0.{MESSAGE_TOOL_CALLS}.{tool_call_index}.{TOOL_CALL_ID}",
-                    tool_call_id,
-                )
+                oi_tool_call["id"] = tool_call_id
             if (function := getattr(tool_call, "function", None)) is not None:
+                oi_function: oi.ToolCallFunction = {}
                 if (name := getattr(function, "name", None)) is not None:
-                    yield (
-                        f"{LLM_OUTPUT_MESSAGES}.0.{MESSAGE_TOOL_CALLS}.{tool_call_index}.{TOOL_CALL_FUNCTION_NAME}",
-                        name,
-                    )
-                if isinstance(arguments := getattr(function, "arguments", None), str):
-                    yield (
-                        f"{LLM_OUTPUT_MESSAGES}.0.{MESSAGE_TOOL_CALLS}.{tool_call_index}.{TOOL_CALL_FUNCTION_ARGUMENTS_JSON}",
-                        arguments,
-                    )
+                    oi_function["name"] = name
+                if isinstance(arguments := getattr(function, "arguments", None), dict):
+                    oi_function["arguments"] = arguments
+                oi_tool_call["function"] = oi_function
+                oi_tool_calls.append(oi_tool_call)
+    oi_message["tool_calls"] = oi_tool_calls
+    return oi.get_llm_output_message_attributes(messages=[oi_message])
 
 
 def _output_value_and_mime_type(output: Any) -> Iterator[Tuple[str, Any]]:
@@ -229,7 +242,7 @@ def _llm_invocation_parameters(
 
 def _llm_tools(tools_to_call_from: list[Any]) -> Iterator[Tuple[str, Any]]:
     from smolagents import Tool
-    from smolagents.models import get_json_schema  # type:ignore[import-untyped]
+    from smolagents.models import get_tool_json_schema  # type: ignore[import-untyped]
 
     if not isinstance(tools_to_call_from, list):
         return
@@ -237,7 +250,7 @@ def _llm_tools(tools_to_call_from: list[Any]) -> Iterator[Tuple[str, Any]]:
         if isinstance(tool, Tool):
             yield (
                 f"{LLM_TOOLS}.{tool_index}.{TOOL_JSON_SCHEMA}",
-                safe_json_dumps(get_json_schema(tool)),
+                safe_json_dumps(get_tool_json_schema(tool)),
             )
 
 
@@ -288,8 +301,7 @@ class _ModelWrapper:
             span.set_attribute(
                 LLM_TOKEN_COUNT_TOTAL, model.last_input_token_count + model.last_output_token_count
             )
-            span.set_attribute(OUTPUT_VALUE, output_message)
-            span.set_attributes(dict(_llm_output_messages(output_message)))
+            span.set_attributes(_llm_output_messages(output_message))
             span.set_attributes(dict(_llm_tools(arguments.get("tools_to_call_from", []))))
             span.set_attributes(dict(_output_value_and_mime_type(output_message)))
         return output_message
