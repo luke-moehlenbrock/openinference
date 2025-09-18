@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.14](https://github.com/luke-moehlenbrock/openinference/compare/python-openinference-instrumentation-crewai-v0.1.13...python-openinference-instrumentation-crewai-v0.1.14) (2025-09-18)
+
+
+### Features
+
+* add entrypoint for use in opentelemetry-instrument ([#1278](https://github.com/luke-moehlenbrock/openinference/issues/1278)) ([2106acf](https://github.com/luke-moehlenbrock/openinference/commit/2106acfd6648804abe9b95e41a49df26a500435c))
+* **crewai:** capture graph.node.id and graph.node.parent_id semantics ([#1794](https://github.com/luke-moehlenbrock/openinference/issues/1794)) ([4645932](https://github.com/luke-moehlenbrock/openinference/commit/4645932b68f7ed5ab3ecd8818ddad9e1011c027e))
+* **crewai:** enhance span naming to include crew, agent, and tool context ([#2202](https://github.com/luke-moehlenbrock/openinference/issues/2202)) ([af44991](https://github.com/luke-moehlenbrock/openinference/commit/af44991003f70fc21701b2f1ead8a19554cd37e2))
+* define openinference_instrumentor entry points for all libraries ([#1290](https://github.com/luke-moehlenbrock/openinference/issues/1290)) ([4b69fdc](https://github.com/luke-moehlenbrock/openinference/commit/4b69fdc13210048009e51639b01e7c0c9550c9d1))
+
+
+### Bug Fixes
+
+* **crewai:** crewai default empty tasks ([#1682](https://github.com/luke-moehlenbrock/openinference/issues/1682)) ([4a47bfc](https://github.com/luke-moehlenbrock/openinference/commit/4a47bfc065b88b55bfcb7605abf66ef12a286ec9))
+* **crewai:** Not Getting Inputs For CrewAI Root Span ([#2193](https://github.com/luke-moehlenbrock/openinference/issues/2193)) ([9cf3b8f](https://github.com/luke-moehlenbrock/openinference/commit/9cf3b8fa0f432f6b6f783fc25a9d3d78f9164d4e))
+* fix test failures with crew-latest ([#1282](https://github.com/luke-moehlenbrock/openinference/issues/1282)) ([e2e3dd1](https://github.com/luke-moehlenbrock/openinference/commit/e2e3dd13bf78a3ad4b0d44fc2ae2151127583dce))
+* increased minimum supported version of openinference-instrumentation to 0.1.27 ([#1507](https://github.com/luke-moehlenbrock/openinference/issues/1507)) ([a55edfa](https://github.com/luke-moehlenbrock/openinference/commit/a55edfa8900c1f36a73385c7d03f91cffadd85c4))
+* update lower bound on openinference-semantic-conventions ([#1567](https://github.com/luke-moehlenbrock/openinference/issues/1567)) ([c2f428c](https://github.com/luke-moehlenbrock/openinference/commit/c2f428c5916c3dd62cf6670358f37111d4f7fd25))
+
+
+### Documentation
+
+* fix license to be openinference ([#1353](https://github.com/luke-moehlenbrock/openinference/issues/1353)) ([85d435b](https://github.com/luke-moehlenbrock/openinference/commit/85d435be3af3de5424494cfbdd654454688b7377))
+
 ## [0.1.13](https://github.com/Arize-ai/openinference/compare/python-openinference-instrumentation-crewai-v0.1.12...python-openinference-instrumentation-crewai-v0.1.13) (2025-09-15)
 
 

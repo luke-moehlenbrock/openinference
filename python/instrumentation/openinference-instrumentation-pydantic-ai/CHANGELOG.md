@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.6](https://github.com/luke-moehlenbrock/openinference/compare/python-openinference-instrumentation-pydantic-ai-v0.1.5...python-openinference-instrumentation-pydantic-ai-v0.1.6) (2025-09-18)
+
+
+### Features
+
+* pydanticai instrumentation ([#1639](https://github.com/luke-moehlenbrock/openinference/issues/1639)) ([d8c5b9c](https://github.com/luke-moehlenbrock/openinference/commit/d8c5b9cdf793dcce247b2ea852c28eba3a1989bc))
+* update pydantic-ai to v2 tracing format ([#2186](https://github.com/luke-moehlenbrock/openinference/issues/2186)) ([5eecce5](https://github.com/luke-moehlenbrock/openinference/commit/5eecce5c648d710d3ad9397e23773096e5903352))
+
+
+### Bug Fixes
+
+* pydantic-ai fix span filtering ([#2016](https://github.com/luke-moehlenbrock/openinference/issues/2016)) ([c139f36](https://github.com/luke-moehlenbrock/openinference/commit/c139f3677233fb7c76b0b2bff5b4a2dafe1921dc))
+* rename pydantic ai test dir ([#1706](https://github.com/luke-moehlenbrock/openinference/issues/1706)) ([d45b00c](https://github.com/luke-moehlenbrock/openinference/commit/d45b00cce1d5960e090dac3801a914523fb0355c))
+
+
+### Documentation
+
+* fix pip install in readme ([#1705](https://github.com/luke-moehlenbrock/openinference/issues/1705)) ([4fbad21](https://github.com/luke-moehlenbrock/openinference/commit/4fbad21f700325af4cd5d314881ec004a859bdf8))
+
 ## [0.1.5](https://github.com/Arize-ai/openinference/compare/python-openinference-instrumentation-pydantic-ai-v0.1.4...python-openinference-instrumentation-pydantic-ai-v0.1.5) (2025-09-11)
 
 
