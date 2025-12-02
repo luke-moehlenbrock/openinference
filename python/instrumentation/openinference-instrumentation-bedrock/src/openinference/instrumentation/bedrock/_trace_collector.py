@@ -202,6 +202,7 @@ class TraceCollector:
         self.trace_stack.push(self.initial_node)
         self.trace_nodes: dict[str, TraceNode] = {default_trace_id: self.initial_node}
         self.trace_ids: List[str] = [self.initial_node.node_trace_id]
+        self.session_id: Optional[str] = None
 
     def _handle_chunk_for_current_node(
         self, node: TraceNode, chunk_type: str, trace_data: Dict[str, Any]
@@ -389,8 +390,7 @@ class TraceCollector:
             chunk_type,
         )
 
-    @classmethod
-    def _extract_trace_data(cls, obj: dict[str, Any]) -> dict[str, Any]:
+    def _extract_trace_data(self, obj: dict[str, Any]) -> dict[str, Any]:
         """
         Extract trace data from the bedrock trace object.
 
@@ -400,8 +400,13 @@ class TraceCollector:
         Returns:
             Extracted trace data as a dictionary
         """
+        print(f"Extract trace data obj: {obj}")
         if "trace" in obj:
-            return obj["trace"].get("trace") or {}
+            trace = obj["trace"].get("trace", {})
+            if "sessionId" in obj["trace"]:
+                self.session_id = obj["trace"].get("sessionId")
+                print(f"TraceCollector.session_id: {self.session_id}")
+            return trace
         else:
             return obj
 

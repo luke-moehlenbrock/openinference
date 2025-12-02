@@ -144,6 +144,7 @@ class _ResponseAccumulator:
         processed into OpenTelemetry spans. It starts the recursive span creation
         process using the initial trace node as the root.
         """
+        print(f"_process_traces: session_id = {self.trace_collector.session_id}")
         self._create_spans(self._span, self.trace_collector.initial_node)
 
     def _create_chain_span(
@@ -180,6 +181,11 @@ class _ResponseAccumulator:
             start_time=int(start_time) if start_time else None,
             attributes=get_span_kind_attributes(attributes.span_kind),
         )
+
+        print(f"Response Accumulator Trace Collector: {self.trace_collector.session_id}")
+
+        if self.trace_collector.session_id:
+            span.set_attribute(SpanAttributes.SESSION_ID, self.trace_collector.session_id)
 
         # Collect and merge metadata from various sources
         metadata = attributes.metadata or {}
@@ -786,6 +792,10 @@ class _ResponseAccumulator:
         """
         if self._is_finished:
             return
+
+        # Set session ID on the root span if available
+        if self.trace_collector.session_id:
+            self._span.set_attribute(SpanAttributes.SESSION_ID, self.trace_collector.session_id)
 
         # Use span manager to finish tracing
         # These attributes are removed as these are input values of the request.

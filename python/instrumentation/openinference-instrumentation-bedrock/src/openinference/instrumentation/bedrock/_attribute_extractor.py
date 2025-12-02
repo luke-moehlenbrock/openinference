@@ -583,6 +583,24 @@ class AttributeExtractor:
         return ""
 
     @classmethod
+    def get_session_id(cls, trace_event_data: dict[str, Any]) -> Optional[str]:
+        """
+        Extracts the session ID from the trace event, if available
+
+        Args:
+            trace_event_data: The trace data containing information about the chunk.
+        
+        Returns:
+            str: The session ID, if available
+        """
+        print("==========================")
+        print("Trace event data:")
+        print(trace_event_data)
+        print("==========================")
+        if session_id := trace_event_data.get("sessionId"):
+            return session_id
+
+    @classmethod
     def get_attributes_from_invocation_input(
         cls, invocation_input: dict[str, Any]
     ) -> dict[str, Any]:
